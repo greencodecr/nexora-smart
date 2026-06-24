@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ewelink-pwa-cache-v2';
+const CACHE_NAME = 'ewelink-pwa-cache-v3';
 const urlsToCache = [
   '/manifest.json',
   '/icon-192.png',

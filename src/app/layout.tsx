@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import PwaRegister from "@/components/PwaRegister";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,6 +36,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${inter.className} min-h-[100dvh] flex flex-col bg-[#0b0e14]`}>
         <PwaRegister />
+        <InstallPrompt />
         <main className="flex-1 flex flex-col">
           {children}
         </main>
