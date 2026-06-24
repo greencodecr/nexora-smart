@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from 'react';
-import { ArrowLeft, Shield, Clock, Users, Activity, Plus, Loader2, Edit2, Trash2, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Shield, Clock, Users, Activity, Plus, Loader2, Edit2, Trash2, X, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface LogEntry {
   id: string;
-  created_at: string;
-  user_email: string;
+  time: number;
+  source: string;
+  user: string;
   device_id: string;
   action: string;
 }
@@ -31,10 +33,38 @@ interface AdminClientProps {
   usersList: UserEntry[];
 }
 
-export default function AdminClient({ logs, stats, usersList }: AdminClientProps) {
+export default function AdminClient({ logs: initialLogs, stats, usersList }: AdminClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'auditoria' | 'usuarios'>('auditoria');
   
+  // Merged audit logs state
+  const [auditLogs, setAuditLogs] = useState<LogEntry[]>(initialLogs as any);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
+
+  const fetchAuditLogs = async () => {
+    setAuditLoading(true);
+    try {
+      const res = await fetch('/api/admin/audit');
+      const data = await res.json();
+      if (data.logs) {
+        setAuditLogs(data.logs);
+        setCurrentPage(1); // Reset to first page on refresh
+      }
+    } catch (e) {
+      console.error('Failed to fetch audit logs', e);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchAuditLogs(); }, []);
+
+  // Pagination logic
+  const totalPages = Math.ceil(auditLogs.length / ITEMS_PER_PAGE);
+  const currentLogs = auditLogs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   // Create User State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -137,7 +167,7 @@ export default function AdminClient({ logs, stats, usersList }: AdminClientProps
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-brand-400" />
+            <Image src="/nexora-logo.webp" alt="Nexora Smart" width={120} height={120} className="drop-shadow-lg" />
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/50">
               Panel de Administración
             </h1>
@@ -205,39 +235,64 @@ export default function AdminClient({ logs, stats, usersList }: AdminClientProps
 
       {activeTab === 'auditoria' && (
         <div className="glass-card p-6 md:p-8 rounded-2xl border border-brand-500/20">
-          <div className="flex items-center gap-3 mb-6">
-            <Clock className="w-6 h-6 text-brand-300" />
-            <h2 className="text-xl font-semibold text-white">Auditoría Global</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Clock className="w-6 h-6 text-brand-300" />
+              <h2 className="text-xl font-semibold text-white">Auditoría Global</h2>
+              <span className="text-xs text-muted bg-white/5 px-2 py-1 rounded-full">{auditLogs.length} registros</span>
+            </div>
+            <button
+              onClick={fetchAuditLogs}
+              className="p-2 rounded-full glass hover:bg-white/10 transition-colors"
+              title="Recargar"
+            >
+              <RefreshCw className={`w-4 h-4 text-brand-300 ${auditLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           
-          {!logs || logs.length === 0 ? (
+          {auditLoading && auditLogs.length === 0 ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="w-8 h-8 border-4 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+            </div>
+          ) : !auditLogs || auditLogs.length === 0 ? (
             <div className="text-center py-12 text-muted">
-              No hay registros de operaciones en la base de datos todavía.
+              No hay registros de operaciones todavía.
             </div>
           ) : (
             <div className="overflow-x-auto max-h-[500px] pr-2 custom-scrollbar">
               <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-[#0b0e14] z-10">
-                  <tr className="border-b border-white/10 text-muted text-sm">
-                    <th className="pb-3 pr-4 font-medium">Fecha y Hora</th>
-                    <th className="pb-3 pr-4 font-medium">Usuario</th>
-                    <th className="pb-3 pr-4 font-medium">Dispositivo ID</th>
-                    <th className="pb-3 font-medium">Acción</th>
+                <thead className="sticky top-0 bg-white/5 backdrop-blur-md z-10">
+                  <tr className="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+                    <th className="py-4 px-4 font-semibold rounded-tl-lg">Fecha y Hora</th>
+                    <th className="py-4 px-4 font-semibold">Usuario</th>
+                    <th className="py-4 px-4 font-semibold">Fuente</th>
+                    <th className="py-4 px-4 font-semibold">Dispositivo ID</th>
+                    <th className="py-4 px-4 font-semibold rounded-tr-lg">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
-                  {logs.map((log) => {
-                    const date = new Date(log.created_at);
+                  {currentLogs.map((log: any) => {
+                    const date = new Date(log.time || log.created_at);
+                    const isNexora = log.source === 'Nexora Smart';
                     return (
                       <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="py-4 pr-4 whitespace-nowrap text-gray-400">
+                        <td className="py-4 px-4 whitespace-nowrap text-gray-400">
                           {date.toLocaleDateString()} <span className="opacity-75">{date.toLocaleTimeString()}</span>
                         </td>
-                        <td className="py-4 pr-4 text-brand-200">{log.user_email}</td>
-                        <td className="py-4 pr-4 text-gray-500 font-mono text-xs">{log.device_id}</td>
-                        <td className="py-4">
+                        <td className="py-4 px-4 text-brand-200">{log.user || log.user_email || '—'}</td>
+                        <td className="py-4 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            log.action === 'on' ? 'bg-green-500/20 text-green-400' : 'bg-brand-500/20 text-brand-300'
+                            isNexora
+                              ? 'bg-brand-500/20 text-brand-300'
+                              : 'bg-purple-500/20 text-purple-300'
+                          }`}>
+                            {log.source || 'eWeLink'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-gray-500 font-mono text-xs">{log.device_id}</td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            log.action === 'on' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                           }`}>
                             {log.action === 'on' ? 'ABIERTO' : 'CERRADO'}
                           </span>
@@ -247,6 +302,44 @@ export default function AdminClient({ logs, stats, usersList }: AdminClientProps
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+          
+          {/* Pagination Controls */}
+          {auditLogs.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
+              <div className="text-sm text-muted">
+                Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, auditLogs.length)} de {auditLogs.length} registros
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-8 h-8 rounded-lg text-sm transition-colors ${
+                        currentPage === i + 1 ? 'bg-brand-600 text-white font-medium' : 'hover:bg-white/10 text-muted'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
         </div>

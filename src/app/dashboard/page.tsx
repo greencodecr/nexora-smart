@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Power, Settings, LogOut, RadioTower, AlertCircle, RefreshCw, Clock, X, Shield } from "lucide-react";
+import { Power, Settings, LogOut, RadioTower, AlertCircle, RefreshCw, X, Shield } from "lucide-react";
 import { logout } from "@/app/auth/actions";
+import Image from "next/image";
 
 interface Device {
   itemData: {
@@ -14,24 +15,11 @@ interface Device {
   };
 }
 
-interface LogEntry {
-  id: string;
-  time: number;
-  source: string;
-  user: string;
-  action: string;
-  raw: any;
-}
-
 export default function Dashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
-  const [historyModal, setHistoryModal] = useState<string | null>(null);
-  const [historyData, setHistoryData] = useState<LogEntry[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'user'>('user');
 
   const fetchDevices = async (silent = false) => {
@@ -151,38 +139,24 @@ export default function Dashboard() {
     }
   };
 
-  const openHistory = async (deviceId: string) => {
-    setHistoryModal(deviceId);
-    setHistoryLoading(true);
-    setHistoryData([]);
-    try {
-      const res = await fetch(`/api/devices/${deviceId}/history`);
-      const data = await res.json();
-      if (data.logs) {
-        setHistoryData(data.logs);
-      }
-    } catch (err) {
-      console.error("Failed to fetch history");
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen p-6 sm:p-12 max-w-6xl mx-auto w-full flex flex-col">
-      <header className="flex justify-between items-center mb-12">
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/50">
-          Mis Portones
-        </h1>
+    <div className="flex-1 p-6 sm:p-12 max-w-6xl mx-auto w-full flex flex-col">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-12 gap-4">
         <div className="flex items-center gap-4">
+          <Image src="/nexora-logo.webp" alt="Nexora Smart" width={120} height={120} className="drop-shadow-lg" />
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/50">
+            Nexora Smart
+          </h1>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
           {userRole === 'admin' && (
             <a 
               href="/admin" 
-              className="p-2 px-4 rounded-full glass hover:bg-brand-500/20 transition-colors text-brand-300 font-medium text-sm flex items-center gap-2"
+              className="p-2 px-4 rounded-full glass border border-brand-500/40 hover:bg-brand-500/20 transition-colors text-brand-300 font-medium text-sm flex items-center gap-2"
               title="Panel de Administración"
             >
               <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Panel Admin</span>
+              <span>Panel Admin</span>
             </a>
           )}
           <button 
@@ -257,13 +231,6 @@ export default function Dashboard() {
                       <span className="text-sm text-muted">{isOnline ? 'En línea' : 'Fuera de línea'}</span>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => openHistory(id)}
-                    className="text-muted hover:text-white transition-colors"
-                    title="Ver Historial"
-                  >
-                    <Clock className="w-5 h-5" />
-                  </button>
                 </div>
 
                 <div className="z-10 mt-6 flex items-center justify-between">
@@ -291,64 +258,6 @@ export default function Dashboard() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {historyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass w-full max-w-lg rounded-2xl p-6 flex flex-col max-h-[80vh]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-white">Historial de Operaciones</h2>
-              <button 
-                onClick={() => setHistoryModal(null)}
-                className="text-muted hover:text-white transition-colors p-1"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-              {historyLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <div className="w-8 h-8 border-4 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
-                </div>
-              ) : historyData.length === 0 ? (
-                <div className="text-center text-muted py-8">
-                  No hay registros recientes para este dispositivo.
-                </div>
-              ) : (
-                historyData.map((log) => {
-                  const date = new Date(log.time);
-                  const isArroyo = log.source === 'Arroyo App';
-                  
-                  return (
-                    <div key={log.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4">
-                      <div className="flex-shrink-0 mt-1">
-                        <div className={`w-3 h-3 rounded-full ${log.action === 'on' ? 'bg-green-500' : 'bg-brand-500'}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-medium text-white">
-                            {log.action === 'on' ? 'Abierto / Encendido' : 'Cerrado / Apagado'}
-                          </span>
-                          <span className="text-xs text-muted">
-                            {date.toLocaleDateString()} {date.toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <div className="text-sm text-muted">
-                          <span className={isArroyo ? 'text-brand-300' : 'text-gray-400'}>
-                            {log.user}
-                          </span>
-                          <span className="mx-2 opacity-50">•</span>
-                          <span className="text-xs uppercase tracking-wider">{log.source}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
         </div>
       )}
     </div>

@@ -1,7 +1,8 @@
 const CACHE_NAME = 'ewelink-pwa-cache-v2';
 const urlsToCache = [
   '/manifest.json',
-  '/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Lock, Smartphone, ShieldCheck } from "lucide-react";
 
 import { LoginForm } from "@/components/LoginForm";
@@ -21,43 +22,18 @@ export default function Home() {
             Acceso Autorizado Únicamente
           </div>
           
-          <h1 className="text-5xl sm:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/50">
-            Arroyo App
+          <Image src="/nexora-logo.webp" alt="Nexora Smart" width={200} height={200} className="mx-auto drop-shadow-2xl" />
+
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/50">
+            Nexora Smart
           </h1>
-          <p className="text-xl sm:text-2xl text-muted max-w-2xl mx-auto leading-relaxed">
-            Ingresa tus credenciales de Supabase para continuar.
+          <p className="text-base text-muted max-w-2xl mx-auto leading-relaxed">
+            Ingresa tus credenciales para continuar.
           </p>
         </div>
 
         <LoginForm />
 
-        <div className="grid sm:grid-cols-3 gap-6 pt-16">
-          {[
-            {
-              icon: <Lock className="w-6 h-6 text-brand-400" />,
-              title: "Seguro",
-              description: "Autenticación OAuth 2.0 segura directamente con los servidores de eWeLink."
-            },
-            {
-              icon: <Smartphone className="w-6 h-6 text-brand-400" />,
-              title: "Control Remoto",
-              description: "Abre y cierra tus portones estés donde estés, en tiempo real."
-            },
-            {
-              icon: <ShieldCheck className="w-6 h-6 text-brand-400" />,
-              title: "Confiable",
-              description: "Diseñado para alta disponibilidad e integración perfecta."
-            }
-          ].map((feature, i) => (
-            <div key={i} className="glass-card p-6 text-left space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-brand-500/10 flex items-center justify-center border border-brand-500/20">
-                {feature.icon}
-              </div>
-              <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-              <p className="text-muted leading-relaxed">{feature.description}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </main>
   );
