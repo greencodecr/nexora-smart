@@ -1,11 +1,11 @@
-const CACHE_NAME = 'ewelink-pwa-cache-v1';
+const CACHE_NAME = 'ewelink-pwa-cache-v2';
 const urlsToCache = [
-  '/',
   '/manifest.json',
   '/icon.svg',
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -18,58 +18,42 @@ self.addEventListener('fetch', (event) => {
   // Solo interceptamos peticiones GET
   if (event.request.method !== 'GET') return;
 
-  // Para las APIs (ej. llamadas a eWeLink), no usamos cache para asegurar datos en tiempo real
-  if (event.request.url.includes('/api/')) {
+  // Ignorar peticiones de sistema/desarrollo de Next.js
+  if (event.request.url.includes('/_next/') || event.request.url.includes('/api/')) {
     return;
   }
 
+  // Network First, Fallback to Cache
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
+        // Guarda en caché si es exitosa
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
-        
-        // Clona la petición porque se consume una vez
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          (response) => {
-            // Revisa si recibimos una respuesta válida
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clona la respuesta
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // No cachear todo, solo cosas estáticas si es posible
-                // cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        ).catch(() => {
-          // Si el fetch falla (ej. sin internet), podrías devolver una página offline.
-        });
+        return response;
+      })
+      .catch(() => {
+        // Si falla la red (offline), busca en caché
+        return caches.match(event.request);
       })
   );
 });
 
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
+  self.clients.claim();
 });
