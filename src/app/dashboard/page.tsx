@@ -183,7 +183,7 @@ export default function Dashboard() {
             </a>
           )}
           <button 
-            onClick={fetchDevices} 
+            onClick={() => fetchDevices()} 
             className="p-2 rounded-full glass hover:bg-white/10 transition-colors"
             title="Actualizar"
           >
