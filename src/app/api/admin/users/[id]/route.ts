@@ -21,14 +21,14 @@ async function getAdminClient() {
 }
 
 // UPDATE User (Password or Role)
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabaseAdmin = await getAdminClient();
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { password, role } = body;
 
@@ -62,14 +62,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // DELETE User
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabaseAdmin = await getAdminClient();
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // First, delete role from user_roles to avoid foreign key constraint errors
     await supabaseAdmin.from('user_roles').delete().eq('user_id', id);

@@ -4,10 +4,10 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deviceId = params.id;
+    const { id: deviceId } = await params;
     if (!deviceId) {
       return NextResponse.json({ error: 'Missing device id' }, { status: 400 });
     }
@@ -84,7 +84,7 @@ export async function GET(
 
     // 5. Deduplicate (optional, if an action was triggered by Arroyo App, it might also appear in eWeLink logs moments later)
     // We can group them if they are within 2 seconds of each other with the same action
-    const deduplicatedLogs = [];
+    const deduplicatedLogs: any[] = [];
     for (const log of combinedLogs) {
       const duplicate = deduplicatedLogs.find(
         (existing) => 
