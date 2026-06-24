@@ -49,7 +49,10 @@ export default function Dashboard() {
       if (data.error !== 0 && data.error) {
         if (!silent) setError(data.msg || "Error fetching devices");
       } else if (data.data && data.data.thingList) {
-        setDevices(data.data.thingList);
+        const filteredDevices = data.data.thingList.filter(
+          (d: any) => d.itemData?.name?.includes("Porton Residencial")
+        );
+        setDevices(filteredDevices);
       } else {
         if (!silent) setError("Unexpected response format");
       }
